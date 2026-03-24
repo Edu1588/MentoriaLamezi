@@ -29,7 +29,37 @@ export default function Home() {
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
 
   // Zustand Store
-  const { plans, addWaitlistEntry } = useAppStore();
+  const { plans: storePlans, addWaitlistEntry } = useAppStore();
+  const [plans, setPlans] = useState(storePlans);
+
+  const fetchPlans = async () => {
+    const { data, error } = await supabase
+      .from('mentoria_plans')
+      .select('*')
+      .order('price_brl', { ascending: true });
+    
+    if (!error && data) {
+      const formattedPlans = data.map(p => ({
+        id: p.id,
+        namePt: p.name_pt,
+        nameEn: p.name_en,
+        descPt: p.desc_pt,
+        descEn: p.desc_en,
+        priceBRL: p.price_brl,
+        priceUSD: p.price_usd,
+        sufPt: p.suf_pt,
+        sufEn: p.suf_en,
+        featuresPt: p.features_pt,
+        featuresEn: p.features_en,
+        isPopular: p.is_popular
+      }));
+      setPlans(formattedPlans);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
 
   const t = (key: keyof typeof uiTranslations['pt']) => uiTranslations[lang][key];
 
@@ -76,6 +106,8 @@ export default function Home() {
     if (loginEmail && loginPassword) {
       if (loginEmail === 'admin@lamezi.com' && loginPassword === 'lamezi2026') {
         navigate('/admin');
+      } else if (loginEmail === 'teste@lamezi.com.br' && loginPassword === 'lamezi2026') {
+        navigate('/portal');
       } else {
         setLoginError('Acesso não autorizado ou credenciais incorretas.');
         setTimeout(() => setLoginError(''), 3000);

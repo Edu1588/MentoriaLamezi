@@ -19,6 +19,7 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [dbSubscribers, setDbSubscribers] = useState<any[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [dbPlans, setDbPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -70,9 +71,23 @@ export default function Admin() {
     }
   };
 
+  const fetchPlans = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('mentoria_plans')
+        .select('*')
+        .order('id', { ascending: true });
+      
+      if (error) throw error;
+      setDbPlans(data || []);
+    } catch (err) {
+      console.error('Erro ao buscar planos:', err);
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
-    await Promise.all([fetchSubscribers(), fetchLessons()]);
+    await Promise.all([fetchSubscribers(), fetchLessons(), fetchPlans()]);
     setLoading(false);
   };
 
@@ -82,14 +97,27 @@ export default function Admin() {
     }
   }, [isAuthenticated]);
 
-  const handlePriceChange = (id: string, field: 'priceBRL' | 'priceUSD', value: string) => {
-    const plan = plans.find(p => p.id === id);
-    if (plan) {
-      if (field === 'priceBRL') {
-        updatePlanPrice(id, value, plan.priceUSD);
-      } else {
-        updatePlanPrice(id, plan.priceBRL, value);
-      }
+  const handlePriceChange = (id: string, field: 'price_brl' | 'price_usd', value: string) => {
+    setDbPlans(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+  };
+
+  const savePlanUpdate = async (plan: any) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('mentoria_plans')
+        .update({ 
+          price_brl: plan.price_brl, 
+          price_usd: plan.price_usd 
+        })
+        .eq('id', plan.id);
+      
+      if (error) throw error;
+      alert('Plano atualizado com sucesso!');
+    } catch (err: any) {
+      alert('Erro ao atualizar plano: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -295,21 +323,21 @@ export default function Admin() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {plans.map((plan) => (
-                <div key={plan.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 relative overflow-hidden">
-                  {plan.isPopular && (
+              {dbPlans.map((plan) => (
+                <div key={plan.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 relative overflow-hidden flex flex-col">
+                  {plan.is_popular && (
                     <div className="absolute top-0 left-0 w-full h-1 bg-brand-orange"></div>
                   )}
-                  <h3 className="text-lg font-black text-brand-orange uppercase tracking-widest mb-2">{plan.namePt}</h3>
-                  <p className="text-xs text-brand-gray mb-6 h-10">{plan.descPt}</p>
+                  <h3 className="text-lg font-black text-brand-orange uppercase tracking-widest mb-2">{plan.name_pt}</h3>
+                  <p className="text-xs text-brand-gray mb-6 h-10">{plan.desc_pt}</p>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-4 mb-6">
                     <div>
                       <label className="block text-[10px] font-bold text-brand-gray uppercase tracking-widest mb-1">Preço (R$)</label>
                       <input 
                         type="text" 
-                        value={plan.priceBRL}
-                        onChange={(e) => handlePriceChange(plan.id, 'priceBRL', e.target.value)}
+                        value={plan.price_brl}
+                        onChange={(e) => handlePriceChange(plan.id, 'price_brl', e.target.value)}
                         className="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand-orange transition-colors"
                       />
                     </div>
@@ -317,12 +345,20 @@ export default function Admin() {
                       <label className="block text-[10px] font-bold text-brand-gray uppercase tracking-widest mb-1">Preço (USD)</label>
                       <input 
                         type="text" 
-                        value={plan.priceUSD}
-                        onChange={(e) => handlePriceChange(plan.id, 'priceUSD', e.target.value)}
+                        value={plan.price_usd}
+                        onChange={(e) => handlePriceChange(plan.id, 'price_usd', e.target.value)}
                         className="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-brand-orange transition-colors"
                       />
                     </div>
                   </div>
+
+                  <button 
+                    onClick={() => savePlanUpdate(plan)}
+                    disabled={loading}
+                    className="w-full mt-auto bg-brand-orange/10 border border-brand-orange/20 text-brand-orange hover:bg-brand-orange hover:text-black transition-all py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center space-x-2"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Salvar Alterações</span>}
+                  </button>
                 </div>
               ))}
             </div>
