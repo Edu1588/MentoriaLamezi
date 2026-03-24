@@ -107,6 +107,7 @@ export default function Home() {
       if (loginEmail === 'admin@lamezi.com' && loginPassword === 'lamezi2026') {
         navigate('/admin');
       } else if (loginEmail === 'teste@lamezi.com.br' && loginPassword === 'lamezi2026') {
+        sessionStorage.setItem('portal_auth', 'true');
         navigate('/portal');
       } else {
         setLoginError('Acesso não autorizado ou credenciais incorretas.');

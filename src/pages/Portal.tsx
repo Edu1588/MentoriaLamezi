@@ -15,7 +15,8 @@ import {
   Clock,
   ExternalLink,
   Search,
-  Filter
+  Filter,
+  Lock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -35,6 +36,12 @@ export default function Portal() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todas');
+  
+  // Auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(sessionStorage.getItem('portal_auth') === 'true');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const fetchLessons = async () => {
     setLoading(true);
@@ -53,8 +60,20 @@ export default function Portal() {
   };
 
   useEffect(() => {
-    fetchLessons();
-  }, []);
+    if (isAuthenticated) {
+      fetchLessons();
+    }
+  }, [isAuthenticated]);
+
+  const handleManualLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email === 'teste@lamezi.com.br' && password === 'lamezi2026') {
+      setIsAuthenticated(true);
+      sessionStorage.setItem('portal_auth', 'true');
+    } else {
+      setError('E-mail ou senha incorretos.');
+    }
+  };
 
   const getYoutubeId = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -93,8 +112,57 @@ export default function Portal() {
   const uniqueTags = ['Todas', ...Array.from(new Set(lessons.map(l => l.theme_tag)))];
 
   const handleLogout = () => {
+    sessionStorage.removeItem('portal_auth');
     window.location.href = 'https://www.leandrolamezi.com.br/mentoria';
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-white font-futura selection:bg-brand-orange selection:text-black flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-3xl p-8 md:p-12 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1.5 bg-brand-orange shadow-[0_0_15px_rgba(255,72,0,0.8)] rounded-b-md"></div>
+          <Lock className="w-12 h-12 text-brand-orange mx-auto mb-6" />
+          <h2 className="text-2xl font-black uppercase tracking-widest mb-2">Portal do Aluno</h2>
+          <p className="text-brand-gray text-xs italic mb-8">Acesse sua área exclusiva para membros.</p>
+          
+          <form onSubmit={handleManualLogin} className="space-y-4 text-left">
+            <div>
+              <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block mb-2 px-1">E-mail</label>
+              <input 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-5 py-4 text-sm focus:outline-none focus:border-brand-orange transition-colors"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-brand-gray uppercase tracking-widest block mb-2 px-1">Senha</label>
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-black/50 border border-white/20 rounded-xl px-5 py-4 text-sm focus:outline-none focus:border-brand-orange transition-colors tracking-widest"
+                required
+              />
+            </div>
+            {error && <p className="text-red-500 text-[10px] font-bold uppercase text-center">{error}</p>}
+            <button type="submit" className="w-full bg-brand-orange text-black font-black uppercase tracking-[0.2em] py-4 rounded-xl text-xs hover:scale-[1.02] transition-transform mt-6">
+              Entrar no Portal
+            </button>
+          </form>
+          
+          <div className="mt-8">
+            <a href="https://www.leandrolamezi.com.br/mentoria" className="text-brand-gray hover:text-brand-orange text-[10px] uppercase tracking-widest transition-colors flex items-center justify-center">
+              <ArrowLeft className="w-3 h-3 mr-2" /> Voltar para o site
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
