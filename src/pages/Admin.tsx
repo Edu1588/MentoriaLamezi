@@ -1,31 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
-import { Settings, Users, CreditCard, Trash2, ArrowLeft, Lock, Loader2 } from 'lucide-react';
+import { Settings, Users, CreditCard, Trash2, ArrowLeft, Lock, Loader2, Plus, Video, Tag, FileText, ExternalLink, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
+interface Lesson {
+  id: string;
+  title: string;
+  description: string;
+  video_url: string;
+  theme_tag: string;
+  created_at: string;
+}
+
 export default function Admin() {
-  const { plans, waitlist, updatePlanPrice, removeWaitlistEntry } = useAppStore();
+  const { plans, updatePlanPrice } = useAppStore();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'plans' | 'subscribers' | 'courses'>('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [dbSubscribers, setDbSubscribers] = useState<any[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  // Lesson Form state
+  const [isAddingLesson, setIsAddingLesson] = useState(false);
+  const [newLesson, setNewLesson] = useState({
+    title: '',
+    description: '',
+    video_url: '',
+    theme_tag: ''
+  });
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === 'lamezi2026') {
       setIsAuthenticated(true);
       setError('');
-      fetchSubscribers();
     } else {
       setError('Senha incorreta');
     }
   };
 
   const fetchSubscribers = async () => {
-    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('mentoria_subscribers')
@@ -36,14 +53,32 @@ export default function Admin() {
       setDbSubscribers(data || []);
     } catch (err) {
       console.error('Erro ao buscar inscritos:', err);
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const fetchLessons = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('mentoria_lessons')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setLessons(data || []);
+    } catch (err) {
+      console.error('Erro ao buscar aulas:', err);
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    await Promise.all([fetchSubscribers(), fetchLessons()]);
+    setLoading(false);
   };
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchSubscribers();
+      fetchData();
     }
   }, [isAuthenticated]);
 
@@ -57,6 +92,68 @@ export default function Admin() {
       }
     }
   };
+
+  const handleAddLesson = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('mentoria_lessons')
+        .insert([newLesson]);
+      
+      if (error) throw error;
+      
+      setNewLesson({ title: '', description: '', video_url: '', theme_tag: '' });
+      setIsAddingLesson(false);
+      fetchLessons();
+    } catch (err: any) {
+      alert('Erro ao salvar aula: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteLesson = async (id: string) => {
+    if (!confirm('Deseja excluir esta aula?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('mentoria_lessons')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      fetchLessons();
+    } catch (err: any) {
+      alert('Erro ao excluir aula: ' + err.message);
+    }
+  };
+
+  const getYoutubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const getVimeoId = (url: string) => {
+    const regExp = /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|video\/|)(\d+)(?:$|\/|\?)/;
+    const match = url.match(regExp);
+    return match ? match[1] : null;
+  };
+
+  // Stats calculations
+  const totalSubscribers = dbSubscribers.length;
+  const activeLessons = lessons.length;
+  const newSubscribersToday = dbSubscribers.filter(s => {
+    const date = new Date(s.created_at);
+    const today = new Date();
+    return date.getDate() === today.getDate() && 
+           date.getMonth() === today.getMonth() && 
+           date.getFullYear() === today.getFullYear();
+  }).length;
+
+  // Mock revenue based on subscribers and plan distribution
+  const estimatedRevenue = totalSubscribers * 1250; // Average value for demonstration
 
   if (!isAuthenticated) {
     return (
@@ -84,9 +181,9 @@ export default function Admin() {
           </form>
           
           <div className="mt-8">
-            <Link to="/" className="text-brand-gray hover:text-brand-orange text-[10px] uppercase tracking-widest transition-colors flex items-center justify-center">
+            <a href="https://www.leandrolamezi.com.br/mentoria" className="text-brand-gray hover:text-brand-orange text-[10px] uppercase tracking-widest transition-colors flex items-center justify-center">
               <ArrowLeft className="w-3 h-3 mr-2" /> Voltar para o site
-            </Link>
+            </a>
           </div>
         </div>
       </div>
@@ -99,9 +196,9 @@ export default function Admin() {
       <header className="border-b border-white/10 bg-black/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Link to="/" className="text-brand-gray hover:text-brand-orange transition-colors">
+            <a href="https://www.leandrolamezi.com.br/mentoria" className="text-brand-gray hover:text-brand-orange transition-colors">
               <ArrowLeft className="w-5 h-5" />
-            </Link>
+            </a>
             <h1 className="text-xl font-black uppercase tracking-widest flex items-center">
               <Settings className="w-5 h-5 mr-2 text-brand-orange" />
               Painel Admin
@@ -142,26 +239,28 @@ export default function Admin() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <p className="text-brand-gray text-[10px] font-black uppercase tracking-widest mb-2">Total Assinantes</p>
-                <p className="text-4xl font-black text-brand-orange">{dbSubscribers.length}</p>
+                <p className="text-4xl font-black text-brand-orange">{totalSubscribers}</p>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <p className="text-brand-gray text-[10px] font-black uppercase tracking-widest mb-2">Aulas Ativas</p>
-                <p className="text-4xl font-black text-brand-orange">42</p>
+                <p className="text-4xl font-black text-brand-orange">{activeLessons}</p>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <p className="text-brand-gray text-[10px] font-black uppercase tracking-widest mb-2">Receita Est. (Mês)</p>
-                <p className="text-4xl font-black text-brand-orange">R$ 24.500</p>
+                <p className="text-4xl font-black text-brand-orange">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(estimatedRevenue)}
+                </p>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <p className="text-brand-gray text-[10px] font-black uppercase tracking-widest mb-2">Novos Inscritos (Hoje)</p>
-                <p className="text-4xl font-black text-brand-orange">3</p>
+                <p className="text-4xl font-black text-brand-orange">{newSubscribersToday}</p>
               </div>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-black uppercase tracking-widest">Atividade Recente (Global)</h3>
-                <button onClick={fetchSubscribers} className="text-xs text-brand-gray hover:text-brand-orange transition-colors">Atualizar</button>
+                <button onClick={fetchData} className="text-xs text-brand-gray hover:text-brand-orange transition-colors">Atualizar</button>
               </div>
               <div className="space-y-4">
                 {dbSubscribers.slice(0, 5).map((entry) => (
@@ -180,6 +279,9 @@ export default function Admin() {
                     </span>
                   </div>
                 ))}
+                {dbSubscribers.length === 0 && (
+                  <p className="text-xs text-brand-gray italic text-center py-4">Sem atividade recente.</p>
+                )}
               </div>
             </div>
           </div>
@@ -298,15 +400,150 @@ export default function Admin() {
 
         {activeTab === 'courses' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-            <div className="flex items-center space-x-3 mb-8">
-              <Settings className="w-6 h-6 text-brand-orange" />
-              <h2 className="text-2xl font-black uppercase tracking-widest">Monitorar Aulas</h2>
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center space-x-3">
+                <Video className="w-6 h-6 text-brand-orange" />
+                <h2 className="text-2xl font-black uppercase tracking-widest">Gestão de Aulas</h2>
+              </div>
+              <button 
+                onClick={() => setIsAddingLesson(!isAddingLesson)}
+                className="bg-brand-orange text-black px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {isAddingLesson ? 'Cancelar' : 'Nova Aula'}
+              </button>
             </div>
+
+            {isAddingLesson && (
+              <form onSubmit={handleAddLesson} className="bg-white/5 border border-white/10 rounded-2xl p-8 mb-8 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase tracking-widest font-black text-brand-gray flex items-center">
+                      <FileText className="w-3 h-3 mr-2" /> Título da Aula
+                    </label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Ex: Introdução ao Workflow"
+                      value={newLesson.title}
+                      onChange={e => setNewLesson({...newLesson, title: e.target.value})}
+                      className="w-full bg-black/50 border border-white/20 rounded-xl px-5 py-4 text-sm focus:outline-none focus:border-brand-orange transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase tracking-widest font-black text-brand-gray flex items-center">
+                      <Tag className="w-3 h-3 mr-2" /> Tag do Tema
+                    </label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Ex: Design, Business, Tech"
+                      value={newLesson.theme_tag}
+                      onChange={e => setNewLesson({...newLesson, theme_tag: e.target.value})}
+                      className="w-full bg-black/50 border border-white/20 rounded-xl px-5 py-4 text-sm focus:outline-none focus:border-brand-orange transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-[10px] uppercase tracking-widest font-black text-brand-gray flex items-center">
+                      <Play className="w-3 h-3 mr-2" /> URL do Vídeo (YouTube ou Vimeo)
+                    </label>
+                    <input 
+                      type="url" 
+                      required
+                      placeholder="https://www.youtube.com/watch?v=... ou https://vimeo.com/..."
+                      value={newLesson.video_url}
+                      onChange={e => setNewLesson({...newLesson, video_url: e.target.value})}
+                      className="w-full bg-black/50 border border-white/20 rounded-xl px-5 py-4 text-sm focus:outline-none focus:border-brand-orange transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-[10px] uppercase tracking-widest font-black text-brand-gray flex items-center">
+                      <FileText className="w-3 h-3 mr-2" /> Descrição
+                    </label>
+                    <textarea 
+                      rows={4}
+                      placeholder="Breve descrição do que será abordado na aula..."
+                      value={newLesson.description}
+                      onChange={e => setNewLesson({...newLesson, description: e.target.value})}
+                      className="w-full bg-black/50 border border-white/20 rounded-xl px-5 py-4 text-sm focus:outline-none focus:border-brand-orange transition-colors resize-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-4">
+                  <button 
+                    disabled={loading}
+                    type="submit" 
+                    className="bg-brand-orange text-black px-10 py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Aula'}
+                  </button>
+                </div>
+              </form>
+            )}
             
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
-              <p className="text-brand-gray italic">Módulo de gerenciamento de aulas em desenvolvimento.</p>
-              <p className="text-[10px] text-brand-gray/50 uppercase mt-2">Total de módulos no site: 5</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {lessons.map((lesson) => (
+                <div key={lesson.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden group">
+                  <div className="aspect-video bg-black relative flex items-center justify-center overflow-hidden">
+                    {getYoutubeId(lesson.video_url) ? (
+                      <img 
+                        src={`https://img.youtube.com/vi/${getYoutubeId(lesson.video_url)}/maxresdefault.jpg`} 
+                        className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
+                        alt={lesson.title}
+                      />
+                    ) : (
+                      <Video className="w-8 h-8 text-white/20" />
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                      <a href={lesson.video_url} target="_blank" rel="noopener noreferrer" className="bg-brand-orange text-black p-3 rounded-full hover:scale-110 transition-transform">
+                        <Play className="w-5 h-5 fill-current" />
+                      </a>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-orange bg-brand-orange/10 px-2 py-0.5 rounded">
+                        {lesson.theme_tag}
+                      </span>
+                      <button 
+                        onClick={() => handleDeleteLesson(lesson.id)}
+                        className="text-brand-gray hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <h3 className="font-bold text-lg mb-2 line-clamp-1">{lesson.title}</h3>
+                    <p className="text-xs text-brand-gray line-clamp-2 mb-4 h-8">{lesson.description}</p>
+                    <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                      <span className="text-[10px] text-brand-gray uppercase tracking-widest">
+                        {new Date(lesson.created_at).toLocaleDateString()}
+                      </span>
+                      <a 
+                        href={lesson.video_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-white/40 hover:text-brand-orange transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
+
+            {lessons.length === 0 && !isAddingLesson && (
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-20 text-center">
+                <Video className="w-12 h-12 text-brand-orange/20 mx-auto mb-4" />
+                <p className="text-brand-gray italic">Nenhuma aula cadastrada ainda.</p>
+                <button 
+                  onClick={() => setIsAddingLesson(true)}
+                  className="mt-6 text-brand-orange text-xs font-bold uppercase tracking-widest hover:underline"
+                >
+                  Começar a cadastrar agora
+                </button>
+              </div>
+            )}
           </div>
         )}
       </main>
