@@ -93,7 +93,7 @@ export default function Portal() {
   const uniqueTags = ['Todas', ...Array.from(new Set(lessons.map(l => l.theme_tag)))];
 
   const handleLogout = () => {
-    navigate('/');
+    window.location.href = 'https://www.leandrolamezi.com.br/mentoria';
   };
 
   if (loading) {
@@ -112,8 +112,10 @@ export default function Portal() {
       {/* Sidebar Navigation */}
       <aside className="fixed left-0 top-0 bottom-0 w-64 liquid-glass-heavy border-r border-white/5 z-50 hidden lg:flex flex-col">
         <div className="p-8 pb-12 flex items-center space-x-3">
-          <img src="https://cardeal.tv/wp-content/uploads/2026/03/LL_laranja-1.png" className="w-7 h-7" alt="Logo" />
-          <span className="text-sm font-black tracking-tighter uppercase">Leandro Lamezi</span>
+          <a href="https://www.leandrolamezi.com.br/mentoria" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+            <img src="https://cardeal.tv/wp-content/uploads/2026/03/LL_laranja-1.png" className="w-7 h-7" alt="Logo" />
+            <span className="text-sm font-black tracking-tighter uppercase">Leandro Lamezi</span>
+          </a>
         </div>
 
         <nav className="flex-1 px-4 space-y-2">
@@ -163,7 +165,9 @@ export default function Portal() {
         {/* Top Header */}
         <header className="sticky top-0 z-40 px-6 py-4 bg-[#050505]/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between">
           <div className="flex items-center lg:hidden space-x-3">
-             <img src="https://cardeal.tv/wp-content/uploads/2026/03/LL_laranja-1.png" className="w-6 h-6" alt="Logo" />
+             <a href="https://www.leandrolamezi.com.br/mentoria">
+               <img src="https://cardeal.tv/wp-content/uploads/2026/03/LL_laranja-1.png" className="w-6 h-6" alt="Logo" />
+             </a>
           </div>
 
           <div className="relative flex-1 max-w-xl mx-4">
