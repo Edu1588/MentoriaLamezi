@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Check, Star, ChevronDown, MessageCircle, Instagram, Youtube, Apple, Play, ArrowUp, ShieldCheck, CreditCard, X, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { uiTranslations, modulesData, testData, faqsData, logoUrls, welcomeMessages } from '../data';
 import { useAppStore } from '../store';
 import { supabase } from '../lib/supabase';
@@ -7,6 +8,7 @@ import { supabase } from '../lib/supabase';
 type Lang = 'pt' | 'en';
 
 export default function Home() {
+  const navigate = useNavigate();
   const [lang, setLang] = useState<Lang>('pt');
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [modalModule, setModalModule] = useState<string | null>(null);
@@ -73,7 +75,7 @@ export default function Home() {
     e.preventDefault();
     if (loginEmail && loginPassword) {
       if (loginEmail === 'admin@lamezi.com' && loginPassword === 'lamezi2026') {
-        window.location.href = '/admin';
+        navigate('/admin');
       } else {
         setLoginError('Acesso não autorizado ou credenciais incorretas.');
         setTimeout(() => setLoginError(''), 3000);
@@ -129,9 +131,9 @@ export default function Home() {
 
       {/* Login Modal */}
       {showLoginModal && (
-        <div className="fixed inset-0 flex items-center justify-center p-4 z-[200]">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowLoginModal(false)}></div>
-          <div className="relative liquid-glass-heavy w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 rounded-[32px] border border-brand-orange/20">
+        <div className="fixed inset-0 flex items-start justify-center p-4 z-[200] pt-10 md:pt-20 overflow-y-auto no-scrollbar">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowLoginModal(false)}></div>
+          <div className="relative liquid-glass-heavy w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 rounded-[32px] border border-brand-orange/20 mb-10">
             <button onClick={() => setShowLoginModal(false)} className="clean-btn absolute top-4 right-4 md:top-6 md:right-6 text-brand-gray hover:text-brand-white z-50">
               <X className="w-6 h-6" />
             </button>
@@ -183,9 +185,9 @@ export default function Home() {
 
       {/* Waitlist Modal */}
       {showWaitlistModal && (
-        <div className="fixed inset-0 flex items-center justify-center p-4 z-[200]">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowWaitlistModal(false)}></div>
-          <div className="relative liquid-glass-heavy w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 rounded-[32px] border border-brand-orange/20">
+        <div className="fixed inset-0 flex items-start justify-center p-4 z-[200] pt-10 md:pt-20 overflow-y-auto no-scrollbar">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowWaitlistModal(false)}></div>
+          <div className="relative liquid-glass-heavy w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 rounded-[32px] border border-brand-orange/20 mb-10">
             <button onClick={() => setShowWaitlistModal(false)} className="clean-btn absolute top-4 right-4 md:top-6 md:right-6 text-brand-gray hover:text-brand-white z-50">
               <X className="w-6 h-6" />
             </button>
@@ -262,11 +264,11 @@ export default function Home() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal Detalhes */}
       {activeModule && (
-        <div className="fixed inset-0 flex items-center justify-center p-4 z-[200]">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closeModal}></div>
-          <div className="relative liquid-glass-heavy w-full max-w-4xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+        <div className="fixed inset-0 flex items-start justify-center p-4 z-[200] pt-10 md:pt-20 overflow-y-auto no-scrollbar">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={closeModal}></div>
+          <div className="relative liquid-glass-heavy w-full max-w-4xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 mb-10">
             <button onClick={closeModal} className="clean-btn absolute top-4 right-4 md:top-8 md:right-8 text-brand-gray hover:text-brand-white z-50">
               <X className="w-6 h-6 md:w-8 md:h-8" />
             </button>
