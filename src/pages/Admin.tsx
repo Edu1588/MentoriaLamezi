@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 
 export default function Admin() {
   const { plans, waitlist, updatePlanPrice, removeWaitlistEntry } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'plans' | 'waitlist'>('waitlist');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'plans' | 'subscribers' | 'courses'>('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -82,27 +82,82 @@ export default function Admin() {
           </div>
           <div className="flex space-x-2">
             <button 
+              onClick={() => setActiveTab('dashboard')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'dashboard' ? 'bg-brand-orange text-black' : 'bg-white/5 text-brand-gray hover:bg-white/10'}`}
+            >
+              Dashboard
+            </button>
+            <button 
               onClick={() => setActiveTab('plans')}
               className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'plans' ? 'bg-brand-orange text-black' : 'bg-white/5 text-brand-gray hover:bg-white/10'}`}
             >
               Planos
             </button>
             <button 
-              onClick={() => setActiveTab('waitlist')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'waitlist' ? 'bg-brand-orange text-black' : 'bg-white/5 text-brand-gray hover:bg-white/10'}`}
+              onClick={() => setActiveTab('subscribers')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'subscribers' ? 'bg-brand-orange text-black' : 'bg-white/5 text-brand-gray hover:bg-white/10'}`}
             >
-              Lista de Espera
+              Assinantes
+            </button>
+            <button 
+              onClick={() => setActiveTab('courses')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'courses' ? 'bg-brand-orange text-black' : 'bg-white/5 text-brand-gray hover:bg-white/10'}`}
+            >
+              Aulas
             </button>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-12">
+        {activeTab === 'dashboard' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <p className="text-brand-gray text-[10px] font-black uppercase tracking-widest mb-2">Total Assinantes</p>
+                <p className="text-4xl font-black text-brand-orange">{waitlist.length}</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <p className="text-brand-gray text-[10px] font-black uppercase tracking-widest mb-2">Aulas Ativas</p>
+                <p className="text-4xl font-black text-brand-orange">42</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <p className="text-brand-gray text-[10px] font-black uppercase tracking-widest mb-2">Receita Est. (Mês)</p>
+                <p className="text-4xl font-black text-brand-orange">R$ 24.500</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <p className="text-brand-gray text-[10px] font-black uppercase tracking-widest mb-2">Novos Inscritos (Hoje)</p>
+                <p className="text-4xl font-black text-brand-orange">3</p>
+              </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
+              <h3 className="text-lg font-black uppercase tracking-widest mb-6">Atividade Recente</h3>
+              <div className="space-y-4">
+                {waitlist.slice(0, 5).map((entry) => (
+                  <div key={entry.id} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-full bg-brand-orange/20 flex items-center justify-center text-brand-orange text-xs font-bold">
+                        {entry.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">{entry.name}</p>
+                        <p className="text-[10px] text-brand-gray">{entry.email}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-brand-gray italic">Novo interesse</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'plans' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex items-center space-x-3 mb-8">
               <CreditCard className="w-6 h-6 text-brand-orange" />
-              <h2 className="text-2xl font-black uppercase tracking-widest">Controle de Planos</h2>
+              <h2 className="text-2xl font-black uppercase tracking-widest">Controle de Valores</h2>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -140,21 +195,21 @@ export default function Admin() {
           </div>
         )}
 
-        {activeTab === 'waitlist' && (
+        {activeTab === 'subscribers' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center space-x-3">
                 <Users className="w-6 h-6 text-brand-orange" />
-                <h2 className="text-2xl font-black uppercase tracking-widest">Lista de Espera</h2>
+                <h2 className="text-2xl font-black uppercase tracking-widest">Monitorar Assinantes</h2>
               </div>
               <span className="bg-brand-orange/20 text-brand-orange px-3 py-1 rounded-full text-xs font-bold">
-                {waitlist.length} cadastros
+                {waitlist.length} cadastrados
               </span>
             </div>
 
             {waitlist.length === 0 ? (
               <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
-                <p className="text-brand-gray italic">Nenhum cadastro na lista de espera ainda.</p>
+                <p className="text-brand-gray italic">Nenhum assinante cadastrado ainda.</p>
               </div>
             ) : (
               <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
@@ -196,6 +251,20 @@ export default function Admin() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'courses' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+            <div className="flex items-center space-x-3 mb-8">
+              <Settings className="w-6 h-6 text-brand-orange" />
+              <h2 className="text-2xl font-black uppercase tracking-widest">Monitorar Aulas</h2>
+            </div>
+            
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
+              <p className="text-brand-gray italic">Módulo de gerenciamento de aulas em desenvolvimento.</p>
+              <p className="text-[10px] text-brand-gray/50 uppercase mt-2">Total de módulos no site: 5</p>
+            </div>
           </div>
         )}
       </main>
