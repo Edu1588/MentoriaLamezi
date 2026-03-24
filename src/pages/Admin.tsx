@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
-import { Settings, Users, CreditCard, Trash2, ArrowLeft, Lock } from 'lucide-react';
+import { Settings, Users, CreditCard, Trash2, ArrowLeft, Lock, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export default function Admin() {
   const { plans, waitlist, updatePlanPrice, removeWaitlistEntry } = useAppStore();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'plans' | 'subscribers' | 'courses'>('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [dbSubscribers, setDbSubscribers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -15,10 +18,34 @@ export default function Admin() {
     if (password === 'lamezi2026') {
       setIsAuthenticated(true);
       setError('');
+      fetchSubscribers();
     } else {
       setError('Senha incorreta');
     }
   };
+
+  const fetchSubscribers = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('mentoria_subscribers')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setDbSubscribers(data || []);
+    } catch (err) {
+      console.error('Erro ao buscar inscritos:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSubscribers();
+    }
+  }, [isAuthenticated]);
 
   const handlePriceChange = (id: string, field: 'priceBRL' | 'priceUSD', value: string) => {
     const plan = plans.find(p => p.id === id);
@@ -115,7 +142,7 @@ export default function Admin() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <p className="text-brand-gray text-[10px] font-black uppercase tracking-widest mb-2">Total Assinantes</p>
-                <p className="text-4xl font-black text-brand-orange">{waitlist.length}</p>
+                <p className="text-4xl font-black text-brand-orange">{dbSubscribers.length}</p>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <p className="text-brand-gray text-[10px] font-black uppercase tracking-widest mb-2">Aulas Ativas</p>
@@ -132,9 +159,12 @@ export default function Admin() {
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
-              <h3 className="text-lg font-black uppercase tracking-widest mb-6">Atividade Recente</h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-black uppercase tracking-widest">Atividade Recente (Global)</h3>
+                <button onClick={fetchSubscribers} className="text-xs text-brand-gray hover:text-brand-orange transition-colors">Atualizar</button>
+              </div>
               <div className="space-y-4">
-                {waitlist.slice(0, 5).map((entry) => (
+                {dbSubscribers.slice(0, 5).map((entry) => (
                   <div key={entry.id} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 rounded-full bg-brand-orange/20 flex items-center justify-center text-brand-orange text-xs font-bold">
@@ -145,7 +175,9 @@ export default function Admin() {
                         <p className="text-[10px] text-brand-gray">{entry.email}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] text-brand-gray italic">Novo interesse</span>
+                    <span className="text-[10px] text-brand-gray italic">
+                      {new Date(entry.created_at).toLocaleDateString('pt-BR')}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -203,11 +235,15 @@ export default function Admin() {
                 <h2 className="text-2xl font-black uppercase tracking-widest">Monitorar Assinantes</h2>
               </div>
               <span className="bg-brand-orange/20 text-brand-orange px-3 py-1 rounded-full text-xs font-bold">
-                {waitlist.length} cadastrados
+                {dbSubscribers.length} cadastrados
               </span>
             </div>
 
-            {waitlist.length === 0 ? (
+            {loading ? (
+              <div className="flex justify-center p-20">
+                <Loader2 className="w-10 h-10 text-brand-orange animate-spin" />
+              </div>
+            ) : dbSubscribers.length === 0 ? (
               <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
                 <p className="text-brand-gray italic">Nenhum assinante cadastrado ainda.</p>
               </div>
@@ -225,10 +261,10 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {waitlist.map((entry) => (
+                      {dbSubscribers.map((entry) => (
                         <tr key={entry.id} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-4 text-brand-gray text-xs">
-                            {new Date(entry.date).toLocaleDateString('pt-BR', {
+                            {new Date(entry.created_at).toLocaleDateString('pt-BR', {
                               day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
                             })}
                           </td>
@@ -237,7 +273,13 @@ export default function Admin() {
                           <td className="px-6 py-4 text-brand-gray">{entry.phone}</td>
                           <td className="px-6 py-4 text-right">
                             <button 
-                              onClick={() => removeWaitlistEntry(entry.id)}
+                              onClick={async () => {
+                                if(confirm('Remover este assinante?')) {
+                                  const { error } = await supabase.from('mentoria_subscribers').delete().eq('id', entry.id);
+                                  if (error) alert('Erro ao remover: ' + error.message);
+                                  fetchSubscribers();
+                                }
+                              }}
                               className="text-red-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-500/10 transition-colors"
                               title="Remover"
                             >

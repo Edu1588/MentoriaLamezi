@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Check, Star, ChevronDown, MessageCircle, Instagram, Youtube, Apple, Play, ArrowUp, ShieldCheck, CreditCard, X, ArrowRight } from 'lucide-react';
 import { uiTranslations, modulesData, testData, faqsData, logoUrls, welcomeMessages } from '../data';
 import { useAppStore } from '../store';
+import { supabase } from '../lib/supabase';
 
 type Lang = 'pt' | 'en';
 
@@ -80,19 +81,32 @@ export default function Home() {
     }
   };
 
-  const handleWaitlistSubmit = (e: React.FormEvent) => {
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (waitlistName && waitlistEmail) {
-      addWaitlistEntry({
-        name: waitlistName,
-        email: waitlistEmail,
-        phone: waitlistPhone
-      });
-      setWaitlistSuccess(true);
-      setWaitlistName('');
-      setWaitlistEmail('');
-      setWaitlistPhone('');
-      setTimeout(() => setWaitlistSuccess(false), 5000);
+      try {
+        const { error } = await supabase
+          .from('mentoria_subscribers')
+          .insert([
+            { name: waitlistName, email: waitlistEmail, phone: waitlistPhone }
+          ]);
+
+        if (error) throw error;
+
+        addWaitlistEntry({
+          name: waitlistName,
+          email: waitlistEmail,
+          phone: waitlistPhone
+        });
+        setWaitlistSuccess(true);
+        setWaitlistName('');
+        setWaitlistEmail('');
+        setWaitlistPhone('');
+        setTimeout(() => setWaitlistSuccess(false), 5000);
+      } catch (err) {
+        console.error('Erro ao salvar no Supabase:', err);
+        alert('Erro ao realizar cadastro. Tente novamente mais tarde.');
+      }
     }
   };
 
